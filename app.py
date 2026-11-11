@@ -21,6 +21,20 @@ with st.sidebar:
     demo = st.checkbox('Explore with demo data', value=False)
     has_header = st.checkbox('CSV has a header row', value=True)
     st.divider()
+    st.subheader('Additional audit data')
+    st.caption('Optional CSV uploads. These files are available for review; audit fields are not populated from them yet.')
+    for label, key in [('MDT', 'mdt_csv'), ('Care Plan', 'care_plan_csv'), ('Medication Reviews', 'medication_reviews_csv')]:
+        extra_upload = st.file_uploader(f'Upload {label} CSV', type=['csv'], key=key)
+        if extra_upload is not None:
+            try:
+                extra_data = read_csv(extra_upload)
+            except (ValueError, pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeError):
+                st.error(f'{label} CSV could not be read. Check that it is a valid CSV with a header row.')
+            else:
+                st.success(f'{label}: {len(extra_data):,} rows loaded')
+                with st.expander(f'{label} columns'):
+                    st.write([str(column) for column in extra_data.columns])
+    st.divider()
     st.caption('Files are processed in the running app’s memory. This app does not write uploaded data to disk or send it to an external service. If hosted, the server receives the upload.')
 
 if upload is None and not demo:
@@ -123,9 +137,16 @@ with overview:
         panel.markdown(f'#### {title}')
         distribution = cohort.groupby(field).size().reset_index(name='Patients')
         chart = alt.Chart(distribution).mark_bar(color='#087f8c', cornerRadiusTopLeft=4, cornerRadiusTopRight=4).encode(
-            x=alt.X(f'{field}:O', title=f'{field} per patient', sort='ascending'),
+            x=alt.X(f'{field}:Q', title=f'{field} per patient', axis=alt.Axis(tickMinStep=1)),
             y=alt.Y('Patients:Q', axis=alt.Axis(tickMinStep=1)), tooltip=[field, 'Patients']).properties(height=300)
-        panel.altair_chart(chart, width='stretch')
+        mean_value = float(cohort[field].mean())
+        mean_data = pd.DataFrame({'Mean': [mean_value], 'Label': [f'Mean: {mean_value:.1f}']})
+        mean_line = alt.Chart(mean_data).mark_rule(color='#d97706', strokeDash=[6, 4], strokeWidth=2).encode(
+            x=alt.X('Mean:Q'), tooltip=[alt.Tooltip('Mean:Q', format='.2f')])
+        mean_label = alt.Chart(mean_data).mark_text(
+            color='#a35405', align='left', dx=6, fontWeight='bold').encode(
+                x=alt.X('Mean:Q'), y=alt.value(12), text='Label:N')
+        panel.altair_chart(chart + mean_line + mean_label, width='stretch')
     st.markdown('#### Appointment count and clinician variety')
     bubbles = cohort.groupby(['Appointments', 'Clinicians']).size().reset_index(name='Patients')
     scatter = alt.Chart(bubbles).mark_circle(color='#087f8c', opacity=.65).encode(

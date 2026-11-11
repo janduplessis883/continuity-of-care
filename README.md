@@ -40,3 +40,7 @@ Tests cover counts, missing values, identifier preservation, the demo dashboard,
 The **Audit output** tab exports the named columns in the supplied continuity audit template, in their original order (omitting its empty leading column). References are sequential and patient identifiers are populated from NHS numbers. Total contacts use all uploaded appointments; supply an export covering the last 12 months. Named practice team is set to Yes for all patients. Named-team size uses the slider percentage (10–100% in 5% steps, default 25%) of unique clinicians in the full upload, rounded up (minimum one): 10 clinicians gives a team size of 3; 3 gives 1. Named-team contacts sum that many highest clinician counts for each patient, or all available counts if fewer are present. Cohort filters do not change team size. Blank clinicians are excluded from named-team counts. The mapped appointment date currently does not apply a date filter.
 
 Care plans, Universal Care Plans, MDT review, admissions, discharge follow-up, medication reviews and continuity actions remain blank until supporting data is available. Blank does not mean No. The template's example patient records are not bundled with the app.
+
+## Additional audit uploads
+
+The sidebar provides optional CSV uploads for MDT, Care Plan, and Medication Reviews. These accept headered CSVs and show row counts and column names. They do not yet populate audit fields; matching and interpretation require the export structure and clinical field definitions.
