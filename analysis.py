@@ -59,7 +59,7 @@ AUDIT_COLUMNS = [
 ]
 
 
-def build_audit(patients, frequencies, team_percentage=25):
+def build_audit(patients, frequencies, team_percentage=25, supporting_data=None):
     """Populate the audit using the selected practice-wide team percentage."""
     audit = pd.DataFrame('', index=range(len(patients)), columns=AUDIT_COLUMNS)
     audit['Ref.'] = range(1, len(patients) + 1)
@@ -72,4 +72,17 @@ def build_audit(patients, frequencies, team_percentage=25):
                  .groupby('NHS number')['Appointments'].sum())
     audit['No. of contacts: named team in last 12 months'] = (
         patients['NHS number'].map(top_team).fillna(0).astype(int).to_numpy())
+    supporting_columns = {
+        'mdt_csv': 'Is this patient part of regular MDT review?',
+        'care_plan_csv': 'Is practice level Care Plan in place?',
+        'medication_reviews_csv': 'Medication review or optimisation in last 12 months',
+    }
+    for key, column in supporting_columns.items():
+        frame = (supporting_data or {}).get(key)
+        if frame is not None:
+            identifiers = frame['NHS number'].fillna('').astype(str).str.replace(r'\s+', '', regex=True)
+            matched = audit['Patient Identifier'].str.replace(r'\s+', '', regex=True).isin(
+                identifiers.loc[identifiers.ne('')])
+            audit[column] = 'No'
+            audit.loc[matched, column] = 'Yes'
     return audit

@@ -50,6 +50,25 @@ class AnalysisTests(unittest.TestCase):
             audit = build_audit(patients, frequencies, team_percentage=percentage)
             self.assertEqual(audit.iloc[0]['No. of contacts: named team in last 12 months'], expected)
 
+    def test_supporting_uploads_populate_audit_and_csv(self):
+        patients, frequencies, _ = analyse(
+            pd.DataFrame({'id': ['0012345678', '0022345678', '0032345678'],
+                          'doctor': ['A', 'B', 'C']}),
+            {'nhs_number': 'id', 'clinician': 'doctor'})
+        supporting = {
+            'mdt_csv': pd.DataFrame({'NHS number': ['001 234 5678', '', '9999999999'], 'Patient Count': ['1', '1', '1']}),
+            'care_plan_csv': pd.DataFrame({'NHS number': ['0022345678', '0022345678']}),
+            'medication_reviews_csv': pd.DataFrame({'NHS number': ['0012345678', '0032345678']}),
+        }
+        audit = build_audit(patients, frequencies, supporting_data=supporting)
+        for result in [audit, read_csv(io.BytesIO(audit.to_csv(index=False).encode('utf-8-sig')))]:
+            result = result.set_index('Patient Identifier')
+            self.assertEqual(result['Is this patient part of regular MDT review?'].tolist(), ['Yes', 'No', 'No'])
+            self.assertEqual(result['Is practice level Care Plan in place?'].tolist(), ['No', 'Yes', 'No'])
+            self.assertEqual(result['Medication review or optimisation in last 12 months'].tolist(), ['Yes', 'No', 'Yes'])
+            self.assertTrue(result['Is Universal Care Plan in place?'].eq('').all())
+            self.assertEqual(len(result), 3)
+
     def test_csv_preserves_identifiers(self):
         frame = read_csv(io.BytesIO(b'NHS Number,Surname\n0012345678,NA\n'))
         self.assertEqual(frame.iloc[0, 0], '0012345678')

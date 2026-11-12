@@ -15,6 +15,8 @@ st.caption('Practice Insights  /  Appointment Analysis')
 st.title('Continuity of Care Audit Tool')
 st.markdown('Understand how often patients attend - and how many different clinicians they see.')
 
+supporting_data = {}
+
 with st.sidebar:
     st.subheader('Your appointment data')
     upload = st.file_uploader('Upload a SystmOne CSV export', type=['csv'])
@@ -22,7 +24,7 @@ with st.sidebar:
     has_header = st.checkbox('CSV has a header row', value=True)
     st.divider()
     st.subheader('Additional audit data')
-    st.caption('Optional CSV uploads. These files are available for review; audit fields are not populated from them yet.')
+    st.caption('Optional CSV uploads with an NHS number column. Matching patients receive Yes in the corresponding audit field; unmatched patients receive No when that file is uploaded. Care Plans populate the practice level Care Plan field.')
     for label, key in [('MDT', 'mdt_csv'), ('Care Plan', 'care_plan_csv'), ('Medication Reviews', 'medication_reviews_csv')]:
         extra_upload = st.file_uploader(f'Upload {label} CSV', type=['csv'], key=key)
         if extra_upload is not None:
@@ -31,6 +33,10 @@ with st.sidebar:
             except (ValueError, pd.errors.ParserError, pd.errors.EmptyDataError, UnicodeError):
                 st.error(f'{label} CSV could not be read. Check that it is a valid CSV with a header row.')
             else:
+                if 'NHS number' not in extra_data.columns:
+                    st.error(f'{label} CSV must contain an NHS number column.')
+                    continue
+                supporting_data[key] = extra_data
                 st.success(f'{label}: {len(extra_data):,} rows loaded')
                 with st.expander(f'{label} columns'):
                     st.write([str(column) for column in extra_data.columns])
@@ -126,7 +132,7 @@ st.subheader('Named-team size')
 team_percentage = st.slider('Percentage of unique practice clinicians in the team', min_value=10, max_value=50, value=15, step=5, format='%d%%')
 practice_clinicians = frequencies['Clinician'].nunique()
 team_size = max(1, ceil(practice_clinicians * team_percentage / 100))
-audit = build_audit(cohort, frequencies, team_percentage)
+audit = build_audit(cohort, frequencies, team_percentage, supporting_data=supporting_data)
 st.caption(f'{practice_clinicians} unique clinicians × {team_percentage}% → top {team_size} clinicians per patient (rounded up). Counts use all clinician names in the upload; GP roles are not identified separately.')
 
 overview, details, audit_tab, methods = st.tabs(['Overview', 'Patient details', 'Audit output', 'How it works'])
@@ -168,7 +174,7 @@ with details:
 with audit_tab:
     st.markdown('#### Continuity audit output')
     st.caption('Matches the supplied audit template, with one row per patient in the filtered cohort, ordered by appointment count.')
-    st.caption(f'This upload contains {practice_clinicians} unique clinicians. Named-team contacts sum each patient’s top {team_size} clinician counts: {team_percentage}% of the practice total, rounded up. The practice total uses the full upload, before cohort filters. If a patient saw fewer clinicians, all their available clinician counts are used. Blank clinician names are excluded. Named practice team is set to Yes for all patients; fields awaiting supporting data remain blank.')
+    st.caption(f'This upload contains {practice_clinicians} unique clinicians. Named-team contacts sum each patient’s top {team_size} clinician counts: {team_percentage}% of the practice total, rounded up. The practice total uses the full upload, before cohort filters. If a patient saw fewer clinicians, all their available clinician counts are used. Blank clinician names are excluded. Named practice team is set to Yes for all patients; MDT, medication review and practice level Care Plan fields are set to Yes where an NHS number matches the corresponding optional upload. Unmatched patients are set to No for uploaded files; fields without an upload remain blank.')
     show_audit_ids = st.checkbox('Show patient identifiers in the audit preview', value=False)
     audit_preview = audit.copy()
     if not show_audit_ids:
@@ -183,6 +189,7 @@ with methods:
 - Appointment counts include rows with missing clinicians; distinct clinician counts exclude blank names.
 - Clinician names are trimmed, but spelling and capitalisation are otherwise preserved.
 - Audit team size uses the selected percentage (10–50%, default 15%) of all unique nonblank clinicians in the upload, rounded up (minimum one). Named-team contacts sum that many highest clinician counts separately for each patient. Cohort filters do not change the practice team size. Named-team status is set to Yes for everyone, as specified.
+- Optional MDT, medication review and Care Plan CSVs match on NHS number after removing whitespace, preserving leading zeros. Matches are marked Yes; unmatched patients receive No when that file is uploaded. Care Plans populate the practice level field; Universal Care Plan remains blank.
 - Audit 12-month columns use all uploaded appointments; the export should cover the last 12 months.
 - Age is the maximum numeric age recorded for that patient, matching your original script.
 - Exact duplicate rows remain included. Filter the export beforehand if cancellations or other appointment statuses should be excluded.
