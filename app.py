@@ -13,7 +13,7 @@ h1 {letter-spacing:-1.5px;} [data-testid="stMetric"] {background:white;border:1p
 </style>''', unsafe_allow_html=True)
 st.caption('Practice Insights  /  Appointment Analysis')
 st.title('Continuity of Care Audit Tool')
-st.markdown('Understand how often patients attend — and how many different clinicians they see.')
+st.markdown('Understand how often patients attend - and how many different clinicians they see.')
 
 with st.sidebar:
     st.subheader('Your appointment data')
@@ -175,7 +175,7 @@ with audit_tab:
         audit_preview['Patient Identifier'] = [f'Patient {i + 1:03}' for i in range(len(audit_preview))]
     st.dataframe(audit_preview, hide_index=True, width='stretch')
     st.caption('The download contains original patient identifiers. Blank fields mean data has not been provided, rather than “No”.')
-    st.download_button('Download audit template CSV', audit.to_csv(index=False).encode('utf-8-sig'), 'continuity_of_care_audit.csv', 'text/csv')
+    st.download_button('Download **Audit** template CSV', audit.to_csv(index=False).encode('utf-8-sig'), 'continuity_of_care_audit.csv', 'text/csv', type='primary')
 with methods:
     st.markdown('''#### Counting rules
 - Each uploaded row represents one appointment, including rows without an appointment date.
