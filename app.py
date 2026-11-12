@@ -11,7 +11,7 @@ st.markdown('''<style>
 h1 {letter-spacing:-1.5px;} [data-testid="stMetric"] {background:white;border:1px solid #e2e8ef;border-radius:14px;padding:18px;}
 [data-testid="stMetricLabel"] {color:#54687c;} div.stButton>button {border-radius:9px;}
 </style>''', unsafe_allow_html=True)
-st.caption('PRACTICE INSIGHTS  /  APPOINTMENT ANALYSIS')
+st.caption('Practice Insights  /  Appointment Analysis')
 st.title('Continuity of Care Audit Tool')
 st.markdown('Understand how often patients attend — and how many different clinicians they see.')
 
@@ -123,7 +123,7 @@ d.metric('Clinicians / patient', f"{cohort['Clinicians'].mean():.1f}")
 st.caption('Distinct clinicians are counted by their trimmed name. Different spellings remain separate; missing clinicians are excluded from that count.')
 
 st.subheader('Named-team size')
-team_percentage = st.slider('Percentage of unique practice clinicians in the team', min_value=10, max_value=100, value=25, step=5, format='%d%%')
+team_percentage = st.slider('Percentage of unique practice clinicians in the team', min_value=10, max_value=50, value=15, step=5, format='%d%%')
 practice_clinicians = frequencies['Clinician'].nunique()
 team_size = max(1, ceil(practice_clinicians * team_percentage / 100))
 audit = build_audit(cohort, frequencies, team_percentage)
@@ -182,7 +182,7 @@ with methods:
 - Patients are grouped by NHS number after removing whitespace. Leading zeros are preserved.
 - Appointment counts include rows with missing clinicians; distinct clinician counts exclude blank names.
 - Clinician names are trimmed, but spelling and capitalisation are otherwise preserved.
-- Audit team size uses the selected percentage (10–100%, default 25%) of all unique nonblank clinicians in the upload, rounded up (minimum one). Named-team contacts sum that many highest clinician counts separately for each patient. Cohort filters do not change the practice team size. Named-team status is set to Yes for everyone, as specified.
+- Audit team size uses the selected percentage (10–50%, default 15%) of all unique nonblank clinicians in the upload, rounded up (minimum one). Named-team contacts sum that many highest clinician counts separately for each patient. Cohort filters do not change the practice team size. Named-team status is set to Yes for everyone, as specified.
 - Audit 12-month columns use all uploaded appointments; the export should cover the last 12 months.
 - Age is the maximum numeric age recorded for that patient, matching your original script.
 - Exact duplicate rows remain included. Filter the export beforehand if cancellations or other appointment statuses should be excluded.
